@@ -1,0 +1,18 @@
+[package]
+name = "aoc2023"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+
+[dependencies]
+aoc-runner = "0.3.0"
+aoc-runner-derive = "0.3.0"
+unindent = "0.2.3"
+colored = "^2.1"
+
+[features]
+default = []
+more-debug = []
+extra-debug-prints = ["more-debug"]
+draw-visuals = ["more-debug"]
