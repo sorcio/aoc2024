@@ -1,6 +1,6 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::testing::example_tests;
+use crate::testing::{example_tests, known_input_tests};
 
 #[aoc_generator(day1)]
 fn parse(input: &str) -> Vec<(u32, u32)> {
@@ -25,8 +25,14 @@ fn part1(input: &[(u32, u32)]) -> u32 {
 }
 
 #[aoc(day1, part2)]
-fn part2(_input: &[(u32, u32)]) -> String {
-    todo!()
+fn part2(input: &[(u32, u32)]) -> u32 {
+    let mut vec1: Vec<_> = input.iter().map(|(x, _)| *x).collect();
+    let mut vec2: Vec<_> = input.iter().map(|(_, y)| *y).collect();
+    vec1.sort();
+    vec2.sort();
+    vec1.into_iter()
+        .map(|x| x * u32::try_from(vec2.iter().filter(|y| x == **y).count()).unwrap())
+        .sum()
 }
 
 example_tests! {
@@ -40,4 +46,11 @@ example_tests! {
     ",
 
     part1 => 11,
+    part2 => 31,
+}
+
+known_input_tests! {
+    input: include_str!("../input/2024/day1.txt"),
+    part1 => 1506483,
+    part2 => 23126924,
 }
