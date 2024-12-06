@@ -69,12 +69,18 @@ struct Pos {
     heading: Heading,
 }
 
+impl Pos {
+    fn xy(&self) -> (usize, usize) {
+        (self.x, self.y)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Grid {
     cells: Vec<Cell>,
     width: usize,
     height: usize,
-    position: Pos,
+    start: Pos,
 }
 
 impl FromGridLike for Grid {
@@ -100,9 +106,15 @@ impl FromGridLike for Grid {
             cells,
             width,
             height,
-            position: start.expect("No starting position found"),
+            start: start.expect("No starting position found"),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Step {
+    Straight,
+    Turn,
 }
 
 impl Grid {
@@ -115,8 +127,8 @@ impl Grid {
         self.cells.get(y * self.width + x).copied()
     }
 
-    fn move_straight(&mut self) -> bool {
-        let Pos { x, y, heading } = self.position;
+    fn move_or_turn(&mut self, position: Pos) -> Option<(Step, Pos)> {
+        let Pos { x, y, heading } = position;
         let (dx, dy) = match heading {
             Heading::Up => (0, -1),
             Heading::Down => (0, 1),
@@ -126,23 +138,33 @@ impl Grid {
         let new_x = x as isize + dx;
         let new_y = y as isize + dy;
         let Some(cell) = self.get(new_x, new_y) else {
-            return false;
+            return None;
         };
 
-        let new_pos = match cell {
-            Cell::Obstacle => Pos {
+        Some(match cell {
+            Cell::Obstacle => (Step::Turn, Pos {
                 x,
                 y,
                 heading: heading.turn_right(),
-            },
-            Cell::Free => Pos {
+            }),
+            Cell::Free => (Step::Straight, Pos {
                 x: new_x as usize,
                 y: new_y as usize,
                 heading,
-            },
-        };
-        self.position = new_pos;
-        return true;
+            }),
+        })
+    }
+
+    fn with_new_obstacle(&self, x: usize, y: usize) -> Self {
+        assert!(self.get(x as isize, y as isize) == Some(Cell::Free));
+        let mut new_cells = self.cells.clone();
+        new_cells[y * self.width + x] = Cell::Obstacle;
+        Self {
+            cells: new_cells,
+            width: self.width,
+            height: self.height,
+            start: self.start,
+        }
     }
 }
 
@@ -155,8 +177,10 @@ fn parse(input: &[u8]) -> Grid {
 fn part1(input: &Grid) -> usize {
     let mut grid = input.clone();
     let mut visited_cells = HashSet::new();
-    while grid.move_straight() {
-        let Pos { x, y, .. } = grid.position;
+    let mut position = grid.start;
+    while let Some((_, new_pos)) = grid.move_or_turn(position) {
+        position = new_pos;
+        let Pos { x, y, .. } = position;
         visited_cells.insert((x, y));
     }
     visited_cells.len()
@@ -165,14 +189,59 @@ fn part1(input: &Grid) -> usize {
 #[aoc(day6, part2)]
 fn part2(input: &Grid) -> usize {
     let mut grid = input.clone();
+    let mut visited_states = HashSet::new();
     let mut visited_cells = HashSet::new();
-    let mut visited_positions = HashSet::new();
-    while grid.move_straight() {
-        let Pos { x, y, .. } = grid.position;
-        visited_cells.insert((x, y));
-        visited_positions.insert(grid.position);
+    let mut position = grid.start;
+    let mut new_obstacles = HashSet::new();
+
+    visited_states.insert(position);
+    loop {
+        visited_cells.insert(position.xy());
+        match grid.move_or_turn(position) {
+            Some((Step::Straight, new_pos)) => {
+                // what if we had hit an obstacle instead?
+                if !visited_cells.contains(&new_pos.xy()) && !new_obstacles.contains(&new_pos.xy())
+                {
+                    let new_obstacle_xy = new_pos.xy();
+                    let mut grid = grid.with_new_obstacle(new_obstacle_xy.0, new_obstacle_xy.1);
+
+                    let mut sub_visited_states = HashSet::with_capacity(visited_states.capacity());
+                    // let mut visited_states = visited_states.clone();
+                    let mut turned_pos = Pos {
+                        heading: position.heading.turn_right(),
+                        ..position
+                    };
+
+                    // keep moving and see if we end up in a visited state
+                    loop {
+                        sub_visited_states.insert(turned_pos);
+                        let Some((_, new_pos)) = grid.move_or_turn(turned_pos) else {
+                            break;
+                        };
+                        if sub_visited_states.contains(&new_pos) {
+                            // found a loop!
+                            new_obstacles.insert(new_obstacle_xy);
+                            break;
+                        }
+                        turned_pos = new_pos;
+                    }
+                }
+
+                // in the end, let's update the position and go ahead as usual
+                position = new_pos;
+                visited_states.insert(position);
+            }
+            Some((Step::Turn, new_pos)) => {
+                // there is already an obstacle, no point in trying to add one
+                position = new_pos;
+                visited_states.insert(position);
+            }
+            None => {
+                break;
+            }
+        }
     }
-    visited_cells.len()
+    new_obstacles.len()
 }
 
 example_tests! {
@@ -196,4 +265,5 @@ example_tests! {
 known_input_tests! {
     input: include_bytes!("../input/2024/day6.txt"),
     part1 => 5067,
+    part2 => 1793,
 }
