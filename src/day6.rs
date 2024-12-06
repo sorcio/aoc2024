@@ -127,7 +127,7 @@ impl Grid {
         self.cells.get(y * self.width + x).copied()
     }
 
-    fn move_or_turn(&mut self, position: Pos) -> Option<(Step, Pos)> {
+    fn step_or_turn(&mut self, position: Pos) -> Option<(Step, Pos)> {
         let Pos { x, y, heading } = position;
         let (dx, dy) = match heading {
             Heading::Up => (0, -1),
@@ -154,18 +154,6 @@ impl Grid {
             }),
         })
     }
-
-    fn with_new_obstacle(&self, x: usize, y: usize) -> Self {
-        assert!(self.get(x as isize, y as isize) == Some(Cell::Free));
-        let mut new_cells = self.cells.clone();
-        new_cells[y * self.width + x] = Cell::Obstacle;
-        Self {
-            cells: new_cells,
-            width: self.width,
-            height: self.height,
-            start: self.start,
-        }
-    }
 }
 
 #[aoc_generator(day6)]
@@ -178,7 +166,7 @@ fn part1(input: &Grid) -> usize {
     let mut grid = input.clone();
     let mut visited_cells = HashSet::new();
     let mut position = grid.start;
-    while let Some((_, new_pos)) = grid.move_or_turn(position) {
+    while let Some((_, new_pos)) = grid.step_or_turn(position) {
         position = new_pos;
         let Pos { x, y, .. } = position;
         visited_cells.insert((x, y));
@@ -197,16 +185,14 @@ fn part2(input: &Grid) -> usize {
     visited_states.insert(position);
     loop {
         visited_cells.insert(position.xy());
-        match grid.move_or_turn(position) {
+        match grid.step_or_turn(position) {
             Some((Step::Straight, new_pos)) => {
                 // what if we had hit an obstacle instead?
                 if !visited_cells.contains(&new_pos.xy()) && !new_obstacles.contains(&new_pos.xy())
                 {
                     let new_obstacle_xy = new_pos.xy();
-                    let mut grid = grid.with_new_obstacle(new_obstacle_xy.0, new_obstacle_xy.1);
 
                     let mut sub_visited_states = HashSet::with_capacity(visited_states.capacity());
-                    // let mut visited_states = visited_states.clone();
                     let mut turned_pos = Pos {
                         heading: position.heading.turn_right(),
                         ..position
@@ -215,15 +201,26 @@ fn part2(input: &Grid) -> usize {
                     // keep moving and see if we end up in a visited state
                     loop {
                         sub_visited_states.insert(turned_pos);
-                        let Some((_, new_pos)) = grid.move_or_turn(turned_pos) else {
-                            break;
-                        };
-                        if sub_visited_states.contains(&new_pos) {
-                            // found a loop!
-                            new_obstacles.insert(new_obstacle_xy);
-                            break;
+                        match grid.step_or_turn(turned_pos) {
+                            Some((Step::Straight, new_pos)) if new_pos.xy() == new_obstacle_xy => {
+                                turned_pos = Pos {
+                                    heading: turned_pos.heading.turn_right(),
+                                    ..turned_pos
+                                };
+                                continue;
+                            }
+                            Some((_, new_pos)) if sub_visited_states.contains(&new_pos) => {
+                                // found a loop!
+                                new_obstacles.insert(new_obstacle_xy);
+                                break;
+                            }
+                            Some((_, new_pos)) => {
+                                turned_pos = new_pos;
+                            }
+                            None => {
+                                break;
+                            }
                         }
-                        turned_pos = new_pos;
                     }
                 }
 
