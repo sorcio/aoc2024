@@ -128,7 +128,7 @@ fn part2(input: &Map) -> usize {
             }
         }
     }
-    antinodes.iter().filter(|&&pos| input.contains(pos)).count()
+    antinodes.len()
 }
 
 example_tests! {
