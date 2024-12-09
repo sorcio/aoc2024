@@ -105,14 +105,32 @@ fn part2(input: &[u8]) -> u64 {
             let new_position = free.position;
             let old_position = file.position;
             let difference = free.size - file.size;
-            free.size = difference;
-            free.position += file.size;
-            file.position = new_position;
-            table.frees.push(Cluster {
-                position: old_position,
-                size: file.size,
-            });
-            table.frees.sort_by_key(|f| f.position);
+
+            if difference == 0 {
+                // small optimization: we don't need to create a new free block
+                file.position = new_position;
+                free.position = old_position;
+                let insert_position = table
+                    .frees
+                    .binary_search_by_key(&old_position, |c| c.position)
+                    .unwrap_or(table.frees.len());
+                if insert_position > first_free {
+                    table.frees[first_free..insert_position].rotate_left(1);
+                }
+            } else {
+                free.size = difference;
+                free.position += file.size;
+                file.position = new_position;
+
+                let insert_position = table
+                    .frees
+                    .binary_search_by_key(&old_position, |c| c.position)
+                    .unwrap_or(table.frees.len());
+                table.frees.insert(insert_position, Cluster {
+                    position: old_position,
+                    size: file.size,
+                });
+            }
         }
     }
 
