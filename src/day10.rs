@@ -29,13 +29,13 @@ impl Map {
         }
     }
 
-    fn cells(&self) -> impl Iterator<Item = (Pos, u8)> + '_ {
+    fn cells(&self) -> impl Iterator<Item = (Pos, u8)> {
         (0..self.height).flat_map(move |y| {
             (0..self.width).map(move |x| (Pos { x, y }, self.get(Pos { x, y }).unwrap()))
         })
     }
 
-    fn neighbors(&self, pos: Pos) -> impl Iterator<Item = (Pos, u8)> + '_ {
+    fn neighbors(&self, pos: Pos) -> impl Iterator<Item = (Pos, u8)> {
         [(0, 1), (1, 0), (0, -1), (-1, 0)]
             .iter()
             .filter_map(move |(dx, dy)| {
@@ -84,7 +84,7 @@ pub fn part1(input: &Map) -> usize {
                 continue;
             }
             for (neighbor, neighbor_value) in input.neighbors(pos) {
-                if neighbor_value == value + 1 {
+                if neighbor_value == value + 1 && !visited[neighbor.y * input.width + neighbor.x] {
                     queue.push_back((neighbor, neighbor_value));
                 }
             }
