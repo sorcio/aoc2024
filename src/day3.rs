@@ -29,7 +29,7 @@ fn part1_parse(line: &str) -> Vec<(u64, u64)> {
                 state = State::FirstNumber(0);
                 current_number = 0;
             }
-            (State::FirstNumber(n), _) if n <= 3 && c.is_digit(10) => {
+            (State::FirstNumber(n), _) if n <= 3 && c.is_ascii_digit() => {
                 current_number = current_number * 10 + c.to_digit(10).unwrap() as u64;
                 state = State::FirstNumber(n + 1);
             }
@@ -38,7 +38,7 @@ fn part1_parse(line: &str) -> Vec<(u64, u64)> {
                 current_number = 0;
                 state = State::SecondNumber(0);
             }
-            (State::SecondNumber(n), _) if n <= 3 && c.is_digit(10) => {
+            (State::SecondNumber(n), _) if n <= 3 && c.is_ascii_digit() => {
                 current_number = current_number * 10 + c.to_digit(10).unwrap() as u64;
                 state = State::SecondNumber(n + 1);
             }
@@ -104,7 +104,7 @@ fn part2_parse(line: &str) -> Vec<(u64, u64)> {
                 active = false;
                 state = State::Initial;
             }
-            (State::FirstNumber(n), _) if n <= 3 && c.is_digit(10) => {
+            (State::FirstNumber(n), _) if n <= 3 && c.is_ascii_digit() => {
                 current_number = current_number * 10 + c.to_digit(10).unwrap() as u64;
                 state = State::FirstNumber(n + 1);
             }
@@ -113,7 +113,7 @@ fn part2_parse(line: &str) -> Vec<(u64, u64)> {
                 current_number = 0;
                 state = State::SecondNumber(0);
             }
-            (State::SecondNumber(n), _) if n <= 3 && c.is_digit(10) => {
+            (State::SecondNumber(n), _) if n <= 3 && c.is_ascii_digit() => {
                 current_number = current_number * 10 + c.to_digit(10).unwrap() as u64;
                 state = State::SecondNumber(n + 1);
             }

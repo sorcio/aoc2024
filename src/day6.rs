@@ -137,9 +137,7 @@ impl Grid {
         };
         let new_x = x as isize + dx;
         let new_y = y as isize + dy;
-        let Some(cell) = self.get(new_x, new_y) else {
-            return None;
-        };
+        let cell = self.get(new_x, new_y)?;
 
         Some(match cell {
             Cell::Obstacle => (Step::Turn, Pos {

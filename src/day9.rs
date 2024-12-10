@@ -107,8 +107,8 @@ fn part2(input: &[u8]) -> u64 {
     for file in table.files.iter_mut().rev() {
         let mut first_free = usize::MAX;
         let mut size = None;
-        for i in file.size..=9 {
-            if let Some(Reverse(pos)) = frees_by_size[i].peek() {
+        for (i, frees) in frees_by_size.iter().enumerate().skip(file.size) {
+            if let Some(Reverse(pos)) = frees.peek() {
                 if *pos < file.position && *pos < first_free {
                     first_free = *pos;
                     size = Some(i);
