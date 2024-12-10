@@ -85,7 +85,7 @@ fn compress_fragmenting(blocks: &mut [Block]) -> usize {
 }
 
 #[aoc(day9, part1)]
-fn part1(input: &[u8]) -> u64 {
+pub fn part1(input: &[u8]) -> u64 {
     let mut blocks = parse_blocks(input);
     let new_size = compress_fragmenting(&mut blocks) + 1;
     blocks.truncate(new_size);
@@ -93,7 +93,7 @@ fn part1(input: &[u8]) -> u64 {
 }
 
 #[aoc(day9, part2)]
-fn part2(input: &[u8]) -> u64 {
+pub fn part2(input: &[u8]) -> u64 {
     let mut table = parse_clusters(input);
 
     use std::cmp::Reverse;
