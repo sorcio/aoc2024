@@ -57,7 +57,9 @@ fn parse_clusters(input: &[u8]) -> FileTable {
     let mut is_free = false;
     for b in input {
         let size = (*b - b'0') as usize;
-        if is_free { &mut frees } else { &mut files }.push(Cluster { position, size });
+        if size > 0 {
+            if is_free { &mut frees } else { &mut files }.push(Cluster { position, size });
+        }
         position += size;
         is_free = !is_free;
     }
@@ -94,42 +96,33 @@ fn part1(input: &[u8]) -> u64 {
 fn part2(input: &[u8]) -> u64 {
     let mut table = parse_clusters(input);
 
+    use std::cmp::Reverse;
+    use std::collections::BinaryHeap;
+
+    let mut frees_by_size: [BinaryHeap<Reverse<usize>>; 10] = [(); 10].map(|_| Default::default());
+    for free in table.frees.iter() {
+        frees_by_size[free.size].push(Reverse(free.position));
+    }
+
     for file in table.files.iter_mut().rev() {
-        if let Some(first_free) = table
-            .frees
-            .iter()
-            .take_while(|free| free.position < file.position)
-            .position(|free| free.size >= file.size)
-        {
-            let free = &mut table.frees[first_free];
-            let new_position = free.position;
-            let old_position = file.position;
-            let difference = free.size - file.size;
-
-            if difference == 0 {
-                // small optimization: we don't need to create a new free block
-                file.position = new_position;
-                free.position = old_position;
-                let insert_position = table
-                    .frees
-                    .binary_search_by_key(&old_position, |c| c.position)
-                    .unwrap_or(table.frees.len());
-                if insert_position > first_free {
-                    table.frees[first_free..insert_position].rotate_left(1);
+        let mut first_free = usize::MAX;
+        let mut size = None;
+        for i in file.size..=9 {
+            if let Some(Reverse(pos)) = frees_by_size[i].peek() {
+                if *pos < file.position && *pos < first_free {
+                    first_free = *pos;
+                    size = Some(i);
                 }
-            } else {
-                free.size = difference;
-                free.position += file.size;
-                file.position = new_position;
+            }
+        }
+        if let Some(free_size) = size {
+            let new_position = frees_by_size[free_size].pop().unwrap().0;
+            let difference = free_size - file.size;
+            file.position = new_position;
 
-                let insert_position = table
-                    .frees
-                    .binary_search_by_key(&old_position, |c| c.position)
-                    .unwrap_or(table.frees.len());
-                table.frees.insert(insert_position, Cluster {
-                    position: old_position,
-                    size: file.size,
-                });
+            if difference > 0 {
+                let new_free_position = new_position + file.size;
+                frees_by_size[difference].push(Reverse(new_free_position));
             }
         }
     }
