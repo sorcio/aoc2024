@@ -7,7 +7,7 @@ use crate::{
     utils::{AsciiUtils, FromGridLike, InvalidCharacter, SliceUtils},
 };
 
-enum Cell {
+pub enum Cell {
     Empty,
     Antenna(u8),
 }
@@ -57,7 +57,7 @@ impl std::ops::Sub<Position> for Position {
     }
 }
 
-struct Map {
+pub struct Map {
     antennas: [Vec<Position>; u8::MAX as _],
     width: usize,
     height: usize,
@@ -89,7 +89,7 @@ impl FromGridLike for Map {
 }
 
 #[aoc_generator(day8)]
-fn parse(input: &[u8]) -> Map {
+pub fn parse(input: &[u8]) -> Map {
     input.grid_like().unwrap().into_grid()
 }
 

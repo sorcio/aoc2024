@@ -21,13 +21,13 @@ impl Page {
 }
 
 #[derive(Debug, Clone)]
-struct Puzzle {
+pub struct Puzzle {
     ordering_constraints: Vec<(Page, Page)>,
     candidate_orderings: Vec<Vec<Page>>,
 }
 
 #[aoc_generator(day5)]
-fn parse(input: &str) -> Puzzle {
+pub fn parse(input: &str) -> Puzzle {
     let mut lines = input.lines();
     let ordering_constraints = {
         let mut constraints = vec![];
@@ -57,7 +57,7 @@ fn parse(input: &str) -> Puzzle {
 }
 
 #[aoc(day5, part1)]
-fn part1(input: &Puzzle) -> usize {
+pub fn part1(input: &Puzzle) -> usize {
     input
         .candidate_orderings
         .iter()
@@ -77,7 +77,7 @@ fn part1(input: &Puzzle) -> usize {
 }
 
 #[aoc(day5, part2)]
-fn part2(input: &Puzzle) -> usize {
+pub fn part2(input: &Puzzle) -> usize {
     input
         .candidate_orderings
         .iter()

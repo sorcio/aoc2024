@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Heading {
+pub enum Heading {
     Up,
     Down,
     Left,
@@ -27,7 +27,7 @@ impl Heading {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum InputCell {
+pub enum InputCell {
     Free,
     Obstacle,
     Start(Heading),
@@ -76,7 +76,7 @@ impl Pos {
 }
 
 #[derive(Debug, Clone)]
-struct Grid {
+pub struct Grid {
     cells: Vec<Cell>,
     width: usize,
     height: usize,
@@ -155,12 +155,12 @@ impl Grid {
 }
 
 #[aoc_generator(day6)]
-fn parse(input: &[u8]) -> Grid {
+pub fn parse(input: &[u8]) -> Grid {
     input.grid_like().unwrap().into_grid()
 }
 
 #[aoc(day6, part1)]
-fn part1(input: &Grid) -> usize {
+pub fn part1(input: &Grid) -> usize {
     let mut grid = input.clone();
     let mut visited_cells = HashSet::new();
     let mut position = grid.start;
@@ -173,7 +173,7 @@ fn part1(input: &Grid) -> usize {
 }
 
 #[aoc(day6, part2)]
-fn part2(input: &Grid) -> usize {
+pub fn part2(input: &Grid) -> usize {
     let mut grid = input.clone();
     let mut visited_states = HashSet::new();
     let mut visited_cells = HashSet::new();

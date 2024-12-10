@@ -3,7 +3,7 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use crate::testing::{example_tests, known_input_tests};
 
 #[aoc_generator(day1)]
-fn parse(input: &str) -> Vec<(u32, u32)> {
+pub fn parse(input: &str) -> Vec<(u32, u32)> {
     input
         .lines()
         .map(|line| {
@@ -16,7 +16,7 @@ fn parse(input: &str) -> Vec<(u32, u32)> {
 }
 
 #[aoc(day1, part1)]
-fn part1(input: &[(u32, u32)]) -> u32 {
+pub fn part1(input: &[(u32, u32)]) -> u32 {
     let mut vec1: Vec<_> = input.iter().map(|(x, _)| *x).collect();
     let mut vec2: Vec<_> = input.iter().map(|(_, y)| *y).collect();
     vec1.sort();
@@ -25,7 +25,7 @@ fn part1(input: &[(u32, u32)]) -> u32 {
 }
 
 #[aoc(day1, part2)]
-fn part2(input: &[(u32, u32)]) -> u32 {
+pub fn part2(input: &[(u32, u32)]) -> u32 {
     let mut vec1: Vec<_> = input.iter().map(|(x, _)| *x).collect();
     let mut vec2: Vec<_> = input.iter().map(|(_, y)| *y).collect();
     vec1.sort();

@@ -2,7 +2,7 @@ use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::testing::{example_tests, known_input_tests};
 
-struct Equation {
+pub struct Equation {
     result: u64,
     operands: Vec<u64>,
 }
@@ -35,7 +35,7 @@ impl Equation {
 }
 
 #[aoc_generator(day7)]
-fn parse(input: &str) -> Vec<Equation> {
+pub fn parse(input: &str) -> Vec<Equation> {
     input
         .lines()
         .map(|line| {

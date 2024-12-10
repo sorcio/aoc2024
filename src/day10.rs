@@ -14,7 +14,7 @@ struct Pos {
 }
 
 #[derive(Debug, Clone)]
-struct Map {
+pub struct Map {
     width: usize,
     height: usize,
     data: Vec<u8>,
@@ -63,12 +63,12 @@ impl FromGridLike for Map {
 }
 
 #[aoc_generator(day10)]
-fn parse(input: &[u8]) -> Map {
+pub fn parse(input: &[u8]) -> Map {
     input.grid_like().unwrap().into_grid()
 }
 
 #[aoc(day10, part1)]
-fn part1(input: &Map) -> usize {
+pub fn part1(input: &Map) -> usize {
     let mut total_score = 0;
     for (start, _) in input.cells().filter(|&(_, c)| c == TRAIL_START) {
         let mut visited = vec![false; input.width * input.height];
@@ -108,7 +108,7 @@ fn recursive_trails(map: &Map, pos: Pos, value: u8) -> usize {
 }
 
 #[aoc(day10, part2)]
-fn part2(input: &Map) -> usize {
+pub fn part2(input: &Map) -> usize {
     let mut total_score = 0;
     for (start, _) in input.cells().filter(|&(_, c)| c == TRAIL_START) {
         let trails = recursive_trails(input, start, TRAIL_START);

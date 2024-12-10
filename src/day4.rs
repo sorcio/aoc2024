@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Letter {
+pub enum Letter {
     X,
     M,
     A,
@@ -29,7 +29,7 @@ impl TryFrom<u8> for Letter {
 }
 
 #[derive(Debug, Clone)]
-struct Grid {
+pub struct Grid {
     cells: Vec<Letter>,
     width: usize,
     height: usize,
@@ -109,7 +109,7 @@ impl Grid {
 }
 
 #[aoc_generator(day4)]
-fn parse(input: &[u8]) -> Grid {
+pub fn parse(input: &[u8]) -> Grid {
     input.grid_like().unwrap().into_grid()
 }
 

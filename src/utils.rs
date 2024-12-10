@@ -185,7 +185,7 @@ where
     fn from_cells(cells: Vec<Self::Cell>, width: usize, height: usize) -> Self;
 }
 
-pub(crate) struct InvalidCharacter(pub(crate) u8);
+pub struct InvalidCharacter(pub(crate) u8);
 
 impl core::fmt::Debug for InvalidCharacter {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

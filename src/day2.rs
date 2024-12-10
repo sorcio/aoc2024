@@ -2,7 +2,7 @@ use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::testing::{example_tests, known_input_tests};
 #[aoc_generator(day2)]
-fn parse(input: &str) -> Vec<Vec<i32>> {
+pub fn parse(input: &str) -> Vec<Vec<i32>> {
     input
         .lines()
         .map(|l| l.split_whitespace().map(|n| n.parse().unwrap()).collect())
