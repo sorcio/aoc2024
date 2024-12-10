@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::{
-    testing::example_tests,
+    testing::{example_tests, known_input_tests},
     utils::{AsciiUtils, FromGridLike},
 };
 
@@ -89,18 +89,32 @@ fn part1(input: &Map) -> usize {
                 }
             }
         }
-        println!(
-            "trail starting at {start:?} has {} ends ({ends:?})",
-            ends.len()
-        );
         total_score += ends.len();
     }
     total_score
 }
 
+fn recursive_trails(map: &Map, pos: Pos, value: u8) -> usize {
+    if value == TRAIL_END {
+        return 1;
+    }
+    let mut trails = 0;
+    for (neighbor, neighbor_value) in map.neighbors(pos) {
+        if neighbor_value == value + 1 {
+            trails += recursive_trails(map, neighbor, neighbor_value);
+        }
+    }
+    trails
+}
+
 #[aoc(day10, part2)]
-fn part2(input: &Map) -> String {
-    todo!()
+fn part2(input: &Map) -> usize {
+    let mut total_score = 0;
+    for (start, _) in input.cells().filter(|&(_, c)| c == TRAIL_START) {
+        let trails = recursive_trails(input, start, TRAIL_START);
+        total_score += trails;
+    }
+    total_score
 }
 
 #[cfg(test)]
@@ -156,4 +170,11 @@ example_tests! {
     ",
 
     part1 => 36,
+    part2 => 81,
+}
+
+known_input_tests! {
+    input: include_bytes!("../input/2024/day10.txt"),
+    part1 => 841,
+    part2 => 1875,
 }
