@@ -7,7 +7,7 @@ use crate::{
     utils::{NumberExt, Parity},
 };
 #[aoc_generator(day11)]
-fn parse(input: &str) -> Vec<u64> {
+pub fn parse(input: &str) -> Vec<u64> {
     input
         .split_ascii_whitespace()
         .map(|x| x.parse().unwrap())
@@ -75,7 +75,7 @@ impl Expander {
 }
 
 #[aoc(day11, part1)]
-fn part1(input: &[u64]) -> usize {
+pub fn part1(input: &[u64]) -> usize {
     // input.iter().map(|n| expand_25_times(*n).len()).sum()
     let mut expander = Expander::new();
     input
@@ -106,26 +106,26 @@ fn part1(input: &[u64]) -> usize {
     // stones.len().try_into().unwrap()
 }
 
-#[aoc(day11, part2)]
-fn part2(input: &[u64]) -> usize {
-    let mut expander = Expander::new();
-    input
-        .iter()
-        .map(|n| {
-            // expand 75 times == expand 25 times 3 times
-            let expanded = expander.expand_25_times(*n).to_vec();
-            dbg!(expander.cache.len());
-            let expanded_twice: Vec<u64> = expanded
-                .into_iter()
-                .flat_map(|n| expander.expand_25_times(n).to_vec())
-                .collect();
-            expanded_twice
-                .into_iter()
-                .map(|n| expander.expand_25_times(n).len())
-                .sum::<usize>()
-        })
-        .sum()
-}
+// #[aoc(day11, part2)]
+// pub fn part2(input: &[u64]) -> usize {
+//     let mut expander = Expander::new();
+//     input
+//         .iter()
+//         .map(|n| {
+//             // expand 75 times == expand 25 times 3 times
+//             let expanded = expander.expand_25_times(*n).to_vec();
+//             dbg!(expander.cache.len());
+//             let expanded_twice: Vec<u64> = expanded
+//                 .into_iter()
+//                 .flat_map(|n| expander.expand_25_times(n).to_vec())
+//                 .collect();
+//             expanded_twice
+//                 .into_iter()
+//                 .map(|n| expander.expand_25_times(n).len())
+//                 .sum::<usize>()
+//         })
+//         .sum()
+// }
 
 #[cfg(test)]
 mod tests {
