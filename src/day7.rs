@@ -1,6 +1,6 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::testing::{example_tests, known_input_tests};
+use aoc_utils::{example_tests, known_input_tests};
 
 pub struct Equation {
     result: u64,

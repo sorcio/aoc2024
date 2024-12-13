@@ -2,10 +2,7 @@ use std::collections::VecDeque;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::{
-    testing::{example_tests, known_input_tests},
-    utils::{AsciiUtils, FromGridLike},
-};
+use aoc_utils::{AsciiUtils, FromGridLike, example_tests, known_input_tests};
 
 pub struct InputGrid {
     cells: Vec<u8>,
@@ -210,7 +207,7 @@ pub fn part2(input: &InputGrid) -> usize {
 
 #[cfg(test)]
 mod test {
-    use unindent::unindent_bytes;
+    use aoc_utils::unindent_bytes;
 
     use super::*;
 

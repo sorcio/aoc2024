@@ -1,7 +1,5 @@
-#![allow(unused)]
-
 /// Iterate over all unique pairs of elements in a slice
-pub(crate) struct PairsIterator<'a, T> {
+pub struct PairsIterator<'a, T> {
     slice: &'a [T],
     index1: usize,
     index2: usize,
@@ -37,7 +35,7 @@ impl<'a, T> Iterator for PairsIterator<'a, T> {
     }
 }
 
-pub(crate) trait SliceUtils<T> {
+pub trait SliceUtils<T> {
     fn pairs(&self) -> PairsIterator<T>;
 }
 
@@ -48,7 +46,7 @@ impl<T> SliceUtils<T> for [T] {
 }
 
 /// Extensions to [[u8]] for ASCII-specific operations
-pub(crate) trait AsciiUtils<'a> {
+pub trait AsciiUtils<'a> {
     type Lines: Iterator<Item = &'a [u8]>;
     /// Iterate over the lines in a slice of ASCII bytes
     fn ascii_lines(&self) -> Self::Lines;
@@ -112,7 +110,7 @@ impl<'a> AsciiUtils<'a> for &'a [u8] {
 }
 
 /// Iterate over the lines in a slice of ASCII bytes
-pub(crate) struct LinesIterator<'a> {
+pub struct LinesIterator<'a> {
     slice: &'a [u8],
     index: usize,
 }
@@ -145,25 +143,41 @@ impl<'a> Iterator for LinesIterator<'a> {
 }
 
 /// Similar to FromStr, but for ASCII bytes
-pub(crate) trait FromAscii: Sized {
+pub trait FromAscii: Sized {
     type Slice<'a>;
     type Error;
     fn from_ascii(s: Self::Slice<'_>) -> Result<Self, Self::Error>;
 }
+
+macro_rules! impl_for_ascii_for_number_type {
+    ($($x:ty),+) => {
+        $(
+            impl FromAscii for $x {
+                type Slice<'a> = &'a [u8];
+                type Error = std::num::ParseIntError;
+                fn from_ascii(s: Self::Slice<'_>) -> Result<Self, Self::Error> {
+                    std::str::from_utf8(s).unwrap().parse()
+                }
+            }
+        )+
+    };
+}
+
+impl_for_ascii_for_number_type!(u8, i8, u16, i16, u32, i32, u64, i64);
 
 /// A grid of cells that can be converted from ASCII characters.
 ///
 /// This is a helper struct for implementing [FromGridLike] for a type. It does
 /// not directly implement any grid utility methods, because they might be
 /// problem-specific and are left to the implementer of [FromGridLike].
-pub(crate) struct GridLike<Cell> {
-    pub(crate) cells: Vec<Cell>,
-    pub(crate) width: usize,
-    pub(crate) height: usize,
+pub struct GridLike<Cell> {
+    pub cells: Vec<Cell>,
+    pub width: usize,
+    pub height: usize,
 }
 
 impl<Cell> GridLike<Cell> {
-    pub(crate) fn into_grid<G>(self) -> G
+    pub fn into_grid<G>(self) -> G
     where
         G: FromGridLike<Cell = Cell>,
         Cell: TryFrom<u8>,
@@ -177,7 +191,7 @@ impl<Cell> GridLike<Cell> {
     }
 }
 
-pub(crate) trait FromGridLike
+pub trait FromGridLike
 where
     Self: Sized,
 {
@@ -185,7 +199,7 @@ where
     fn from_cells(cells: Vec<Self::Cell>, width: usize, height: usize) -> Self;
 }
 
-pub struct InvalidCharacter(pub(crate) u8);
+pub struct InvalidCharacter(pub u8);
 
 impl core::fmt::Debug for InvalidCharacter {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -193,6 +207,7 @@ impl core::fmt::Debug for InvalidCharacter {
     }
 }
 
+#[macro_export]
 macro_rules! grid_cell_enum {
     (
         $(#[$attrs:meta])?
@@ -226,10 +241,10 @@ macro_rules! grid_cell_enum {
         }
 }
 
-pub(crate) use grid_cell_enum;
+pub use grid_cell_enum;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum Parity {
+pub enum Parity {
     Even = 0,
     Odd = 1,
 }
@@ -244,7 +259,7 @@ impl std::ops::Not for Parity {
     }
 }
 
-pub(crate) trait NumberExt: Sized {
+pub trait NumberExt: Sized {
     fn greatest_common_divisor(self, other: Self) -> Self;
     fn least_common_multiple(self, other: Self) -> Self;
     fn parity(self) -> Parity;
@@ -305,7 +320,7 @@ where
     }
 }
 
-pub(crate) trait NumberIteratorExt: Sized {
+pub trait NumberIteratorExt: Sized {
     fn least_common_multiple(self) -> Self::Item
     where
         Self: Iterator,

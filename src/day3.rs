@@ -1,6 +1,6 @@
 use aoc_runner_derive::aoc;
 
-use crate::testing::{example_tests, known_input_tests};
+use aoc_utils::{example_tests, known_input_tests};
 
 fn part1_parse(line: &str) -> Vec<(u64, u64)> {
     let mut result = vec![];

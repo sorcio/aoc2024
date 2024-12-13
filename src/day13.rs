@@ -1,22 +1,11 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::{
-    testing::{example_tests, known_input_tests},
-    utils::{AsciiUtils, FromAscii},
-};
+use aoc_utils::{AsciiUtils, example_tests, known_input_tests};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Vector {
     x: i64,
     y: i64,
-}
-
-impl FromAscii for i64 {
-    type Slice<'a> = &'a [u8];
-    type Error = std::num::ParseIntError;
-    fn from_ascii(s: Self::Slice<'_>) -> Result<Self, Self::Error> {
-        std::str::from_utf8(s).unwrap().parse()
-    }
 }
 
 #[derive(Debug, Clone)]

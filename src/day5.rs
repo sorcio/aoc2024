@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::testing::{example_tests, known_input_tests};
+use aoc_utils::{example_tests, known_input_tests};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Page(u8);

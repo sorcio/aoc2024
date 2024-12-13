@@ -1,22 +1,20 @@
-#![allow(unused)]
-
 use std::{borrow::Borrow, marker::PhantomData};
 
 #[allow(private_bounds)]
-pub(crate) struct CorrectResultTest<'s, Parse, Solve, T, I, O>
+pub struct CorrectResultTest<'s, Parse, Solve, T, I, O>
 where
     Parse: ParserOrNone<'s, T>,
     I: ?Sized,
     T: ?Sized,
     O: 'static,
 {
-    pub(crate) parser: Parse,
-    pub(crate) solver: Solve,
-    pub(crate) example: &'s T,
-    pub(crate) result: &'static O,
-    pub(crate) marker: PhantomData<I>,
+    pub parser: Parse,
+    pub solver: Solve,
+    pub example: &'s T,
+    pub result: &'static O,
+    pub marker: PhantomData<I>,
 }
-pub(crate) trait Unindentable {
+pub trait Unindentable {
     type Output: Borrow<Self>;
     fn unindent(&self) -> Self::Output;
 }
@@ -68,7 +66,7 @@ where
     O: std::cmp::Eq + std::fmt::Debug + 'static,
 {
     #[cfg_attr(not(test), allow(unused))]
-    pub(crate) fn test(self) {
+    pub fn test(self) {
         assert_eq!(
             &(self.solver)(self.parser.parse(self.example).borrow()),
             self.result
@@ -76,6 +74,7 @@ where
     }
 }
 
+#[macro_export]
 macro_rules! example_tests {
     (
         parser: $parser:expr,
@@ -120,6 +119,7 @@ macro_rules! example_tests {
     };
 }
 
+#[macro_export]
 macro_rules! known_input_tests {
     (
         parser: $parser:expr,
@@ -159,4 +159,4 @@ macro_rules! known_input_tests {
     };
 }
 
-pub(crate) use {example_tests, known_input_tests};
+pub use {example_tests, known_input_tests};

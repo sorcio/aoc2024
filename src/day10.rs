@@ -2,10 +2,7 @@ use std::collections::VecDeque;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::{
-    testing::{example_tests, known_input_tests},
-    utils::{AsciiUtils, FromGridLike},
-};
+use aoc_utils::{AsciiUtils, FromGridLike, example_tests, known_input_tests};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Pos {
@@ -120,7 +117,7 @@ pub fn part2(input: &Map) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use unindent::unindent_bytes;
+    use aoc_utils::unindent_bytes;
 
     #[test]
     fn part1_basic() {

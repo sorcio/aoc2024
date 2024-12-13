@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::{
+use aoc_utils::{
     testing::example_tests,
     utils::{NumberExt, Parity},
 };

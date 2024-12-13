@@ -1,13 +1,11 @@
 //! Utilities for working with ranges and intervals.
 
-#![allow(unused)]
-
-pub(crate) trait Overlaps {
+pub trait Overlaps {
     fn overlaps(&self, other: &Self) -> bool;
 }
 
 /// Get the length of a sized collection.
-pub(crate) trait HasExtent {
+pub trait HasExtent {
     type Extent;
     /// Returns the length of a sized collection. Similar to [`&[T].len`] or
     /// [`ExactSizeIterator::len`].
@@ -26,17 +24,17 @@ where
 
 /// Kinda like Range/RangeInclusive but the end might be > u32::MAX
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Interval<T = u32> {
+pub struct Interval<T = u32> {
     start: T,
     length: T,
 }
 
 impl<T: Copy> Interval<T> {
-    pub(crate) const fn new(start: T, length: T) -> Self {
+    pub const fn new(start: T, length: T) -> Self {
         Interval { start, length }
     }
 
-    pub(crate) fn len(&self) -> T {
+    pub fn len(&self) -> T {
         self.length
     }
 }
@@ -52,32 +50,32 @@ macro_rules! interval_impl {
     ($t:ty) => {
         #[allow(dead_code)]
         impl Interval<$t> {
-            pub(crate) fn excl(start: $t, end: $t) -> Self {
+            pub fn excl(start: $t, end: $t) -> Self {
                 debug_assert!(end >= start);
                 (start..end).into()
             }
 
-            pub(crate) fn is_empty(&self) -> bool {
+            pub fn is_empty(&self) -> bool {
                 self.len() == 0
             }
 
-            pub(crate) fn contains(&self, n: $t) -> bool {
+            pub fn contains(&self, n: $t) -> bool {
                 n >= self.start && n - self.start < self.length
             }
 
-            pub(crate) fn distance_from_start(&self, n: $t) -> Option<$t> {
+            pub fn distance_from_start(&self, n: $t) -> Option<$t> {
                 self.contains(n).then(|| n.checked_sub(self.start))?
             }
 
-            pub(crate) fn start(&self) -> $t {
+            pub fn start(&self) -> $t {
                 self.start
             }
 
-            pub(crate) fn end(&self) -> u64 {
+            pub fn end(&self) -> u64 {
                 self.start as u64 + self.length as u64
             }
 
-            pub(crate) fn intersection(&self, other: &Self) -> Option<Self> {
+            pub fn intersection(&self, other: &Self) -> Option<Self> {
                 if self.start >= other.start {
                     let diff = self.start - other.start;
                     if other.len() > diff {

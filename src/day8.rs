@@ -2,9 +2,8 @@ use std::collections::HashSet;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::{
-    testing::{example_tests, known_input_tests},
-    utils::{AsciiUtils, FromGridLike, InvalidCharacter, SliceUtils},
+use aoc_utils::{
+    AsciiUtils, FromGridLike, InvalidCharacter, SliceUtils, example_tests, known_input_tests,
 };
 
 pub enum Cell {

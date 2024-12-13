@@ -8,11 +8,14 @@ edition = "2024"
 [dependencies]
 aoc-runner = "0.3.0"
 aoc-runner-derive = "0.3.0"
-unindent = "0.2.3"
-colored = "^2.1"
+aoc-utils = { path = "./aoc-utils" }
 
 [features]
 default = []
 more-debug = []
 extra-debug-prints = ["more-debug"]
 draw-visuals = ["more-debug"]
+
+[workspace]
+members = ["aoc-utils"]
+exclude = ["target/aoc/aoc-autobuild"]
