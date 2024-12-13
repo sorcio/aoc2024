@@ -19,7 +19,7 @@ impl FromAscii for i32 {
     }
 }
 
-struct Machine {
+pub struct Machine {
     button_a: Vector,
     button_b: Vector,
     target: Vector,
@@ -44,7 +44,7 @@ fn parse_target_line(line: &[u8]) -> Vector {
 }
 
 #[aoc_generator(day13)]
-fn parse(input: &[u8]) -> Vec<Machine> {
+pub fn parse(input: &[u8]) -> Vec<Machine> {
     let mut machines = Vec::new();
     let mut lines = input.ascii_lines();
     loop {
@@ -111,16 +111,16 @@ fn solve_machine(machine: &Machine) -> Option<Solution> {
 }
 
 #[aoc(day13, part1)]
-fn part1(input: &[Machine]) -> usize {
+pub fn part1(input: &[Machine]) -> usize {
     input
         .iter()
-        .filter_map(|machine| solve_machine(machine))
+        .filter_map(solve_machine)
         .map(Solution::tokens)
         .sum()
 }
 
 #[aoc(day13, part2)]
-fn part2(input: &[Machine]) -> String {
+pub fn part2(input: &[Machine]) -> String {
     todo!()
 }
 
