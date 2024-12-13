@@ -1,17 +1,17 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::{
-    testing::example_tests,
+    testing::{example_tests, known_input_tests},
     utils::{AsciiUtils, FromAscii},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Vector {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
 }
 
-impl FromAscii for i32 {
+impl FromAscii for i64 {
     type Slice<'a> = &'a [u8];
     type Error = std::num::ParseIntError;
     fn from_ascii(s: Self::Slice<'_>) -> Result<Self, Self::Error> {
@@ -19,10 +19,19 @@ impl FromAscii for i32 {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Machine {
     button_a: Vector,
     button_b: Vector,
     target: Vector,
+}
+
+impl Machine {
+    fn convert_for_part_2(mut self) -> Self {
+        self.target.x += 10_000_000_000_000;
+        self.target.y += 10_000_000_000_000;
+        self
+    }
 }
 
 fn parse_button_line(line: &[u8]) -> Vector {
@@ -69,8 +78,8 @@ pub fn parse(input: &[u8]) -> Vec<Machine> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Solution {
-    a: i32,
-    b: i32,
+    a: i64,
+    b: i64,
 }
 
 impl Solution {
@@ -120,8 +129,14 @@ pub fn part1(input: &[Machine]) -> usize {
 }
 
 #[aoc(day13, part2)]
-pub fn part2(input: &[Machine]) -> String {
-    todo!()
+pub fn part2(input: &[Machine]) -> usize {
+    input
+        .iter()
+        .cloned()
+        .map(Machine::convert_for_part_2)
+        .filter_map(|machine| solve_machine(&machine))
+        .map(|solution| solution.tokens())
+        .sum()
 }
 
 #[cfg(test)]
@@ -171,4 +186,10 @@ example_tests! {
     ",
 
     part1 => 480,
+}
+
+known_input_tests! {
+    input: include_bytes!("../input/2024/day13.txt"),
+    part1 => 35255,
+    part2 => 87582154060429,
 }
