@@ -7,7 +7,7 @@ use crate::{
     utils::{AsciiUtils, FromGridLike},
 };
 
-struct InputGrid {
+pub struct InputGrid {
     cells: Vec<u8>,
     width: usize,
     height: usize,
@@ -65,12 +65,12 @@ impl InputGrid {
 }
 
 #[aoc_generator(day12)]
-fn parse(input: &[u8]) -> InputGrid {
+pub fn parse(input: &[u8]) -> InputGrid {
     input.grid_like().unwrap().into_grid()
 }
 
 #[aoc(day12, part1)]
-fn part1(input: &InputGrid) -> usize {
+pub fn part1(input: &InputGrid) -> usize {
     #[derive(Debug, Default)]
     struct Region {
         area: usize,
@@ -117,7 +117,7 @@ fn part1(input: &InputGrid) -> usize {
 }
 
 #[aoc(day12, part2)]
-fn part2(input: &InputGrid) -> usize {
+pub fn part2(input: &InputGrid) -> usize {
     #[derive(Debug, Default)]
     struct Region {
         area: usize,
