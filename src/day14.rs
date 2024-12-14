@@ -133,29 +133,25 @@ fn part2_impl<const WIDTH: usize, const HEIGHT: usize>(robots: &[Robot]) -> usiz
     };
 
     let mut iterations = 0;
-    let mut grid = vec![false; WIDTH * HEIGHT];
+    let mut rows = [0; 128];
+    let mut cols = [0; 128];
     loop {
         // check if robots draw a christmas tree figure
-        grid.fill(false);
+        // heuristic: is there a row/col that could look like the picture frame?
+        cols.fill(0);
         for robot in robots {
-            let displacement = robot.velocity * iterations;
-            let position = (robot.position + displacement).rem_euclid(size);
-            grid[position.y as usize * WIDTH + position.x as usize] = true;
+            let x = (robot.position.x + robot.velocity.x * iterations).rem_euclid(size.x);
+            cols[x as usize] += 1;
         }
-
-        // heuristic: if there is a 16-chunk of all true values, maybe we have a
-        // christmas tree figure somewhere
-        if grid.chunks_exact(16).any(|chunk| chunk == [true; 16]) {
-            if cfg!(debug_assertions) {
-                println!("\n\nIteration: {}", iterations);
-                for y in 0..HEIGHT {
-                    for x in 0..WIDTH {
-                        print!("{}", if grid[y * WIDTH + x] { '#' } else { '.' });
-                    }
-                    println!();
-                }
+        if cols.iter().any(|&x| x >= 32) {
+            rows.fill(0);
+            for robot in robots {
+                let y = (robot.position.y + robot.velocity.y * iterations).rem_euclid(size.y);
+                rows[y as usize] += 1;
             }
-            break;
+            if rows.iter().any(|&x| x >= 32) {
+                break;
+            }
         }
 
         iterations += 1;
