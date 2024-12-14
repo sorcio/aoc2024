@@ -18,4 +18,4 @@ draw-visuals = ["more-debug"]
 
 [workspace]
 members = ["aoc-utils"]
-exclude = ["target/aoc/aoc-autobuild"]
+exclude = ["target/aoc/aoc-autobuild", "target/aoc/aoc-autobench"]
