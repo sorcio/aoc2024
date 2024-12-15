@@ -157,6 +157,196 @@ impl Map {
             })
             .sum()
     }
+
+    fn into_double(self) -> DoubleMap {
+        let mut double_tiles = Vec::with_capacity(self.tiles.len() * 2);
+        for tile in self.tiles {
+            match tile {
+                Tile::Empty => {
+                    double_tiles.push(DoubleTile::Empty);
+                    double_tiles.push(DoubleTile::Empty);
+                }
+                Tile::Wall => {
+                    double_tiles.push(DoubleTile::Wall);
+                    double_tiles.push(DoubleTile::Wall);
+                }
+                Tile::Box => {
+                    double_tiles.push(DoubleTile::BoxLeft);
+                    double_tiles.push(DoubleTile::BoxRight);
+                }
+            }
+        }
+        let width = self.width * 2;
+        let height = self.height;
+        let start = Position {
+            x: self.start.x * 2,
+            y: self.start.y,
+        };
+        DoubleMap {
+            tiles: double_tiles,
+            width,
+            height,
+            start,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DoubleTile {
+    Empty,
+    Wall,
+    BoxLeft,
+    BoxRight,
+}
+
+impl DoubleTile {
+    fn is_box(self) -> bool {
+        matches!(self, DoubleTile::BoxLeft | DoubleTile::BoxRight)
+    }
+
+    fn opposite_box(self) -> Self {
+        match self {
+            DoubleTile::BoxLeft => DoubleTile::BoxRight,
+            DoubleTile::BoxRight => DoubleTile::BoxLeft,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DoubleMap {
+    tiles: Vec<DoubleTile>,
+    width: usize,
+    height: usize,
+    start: Position,
+}
+
+impl DoubleMap {
+    fn get_tile(&self, pos: Position) -> Option<DoubleTile> {
+        // skipping bounds check for now because map is bounded by walls
+        self.tiles
+            .get((pos.y as usize) * self.width + pos.x as usize)
+            .copied()
+    }
+
+    fn set_tile(&mut self, pos: Position, tile: DoubleTile) {
+        self.tiles[(pos.y as usize) * self.width + pos.x as usize] = tile;
+    }
+
+    fn move_robot(&mut self, pos: Position, dir: Direction) -> Position {
+        let new_pos = pos + dir;
+        match self.get_tile(new_pos) {
+            Some(DoubleTile::Empty) => new_pos,
+            Some(DoubleTile::Wall) => pos,
+            Some(box_tile @ (DoubleTile::BoxLeft | DoubleTile::BoxRight))
+                if dir == Direction::Up || dir == Direction::Down =>
+            {
+                let mut queue = vec![(new_pos, box_tile)];
+                if box_tile == DoubleTile::BoxLeft {
+                    queue.push((new_pos + Direction::Right, DoubleTile::BoxRight));
+                } else {
+                    queue.push((new_pos + Direction::Left, DoubleTile::BoxLeft));
+                }
+                let mut clear = true;
+                let mut boxes_to_push = Vec::new();
+                while let Some((box_pos, tile)) = queue.pop() {
+                    let new_box_pos = box_pos + dir;
+                    match self.get_tile(new_box_pos).unwrap() {
+                        DoubleTile::Empty => {}
+                        DoubleTile::Wall => {
+                            clear = false;
+                            break;
+                        }
+                        DoubleTile::BoxLeft => {
+                            queue.push((new_box_pos, DoubleTile::BoxLeft));
+                            queue.push((new_box_pos + Direction::Right, DoubleTile::BoxRight));
+                        }
+                        DoubleTile::BoxRight => {
+                            queue.push((new_box_pos, DoubleTile::BoxRight));
+                            queue.push((new_box_pos + Direction::Left, DoubleTile::BoxLeft));
+                        }
+                    }
+                    boxes_to_push.push((box_pos, new_box_pos, tile));
+                }
+                if clear {
+                    for (box_pos, _, _) in &boxes_to_push {
+                        self.set_tile(*box_pos, DoubleTile::Empty);
+                    }
+                    for (_, new_box_pos, tile) in &boxes_to_push {
+                        self.set_tile(*new_box_pos, *tile);
+                    }
+                    new_pos
+                } else {
+                    pos
+                }
+            }
+            Some(box_tile @ (DoubleTile::BoxLeft | DoubleTile::BoxRight))
+                if dir == Direction::Left || dir == Direction::Right =>
+            {
+                let mut new_box_pos = new_pos + dir;
+                // if multiple boxes are stacked, move them all in the same move
+                while self.get_tile(new_box_pos).unwrap().is_box() {
+                    new_box_pos = new_box_pos + dir;
+                }
+                match self.get_tile(new_box_pos) {
+                    Some(DoubleTile::Empty) => {
+                        self.set_tile(new_pos, DoubleTile::Empty);
+                        {
+                            let mut new_box_pos = new_pos + dir;
+                            while self.get_tile(new_box_pos).unwrap().is_box() {
+                                self.set_tile(
+                                    new_box_pos,
+                                    self.get_tile(new_box_pos).unwrap().opposite_box(),
+                                );
+                                new_box_pos = new_box_pos + dir;
+                            }
+                        }
+                        self.set_tile(new_box_pos, box_tile.opposite_box());
+                        new_pos
+                    }
+                    _ => pos,
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn part2_checksum(&self) -> usize {
+        self.tiles
+            .iter()
+            .enumerate()
+            .map(|(i, t)| match t {
+                DoubleTile::BoxLeft => (i % self.width) + 100 * (i / self.width),
+                _ => 0,
+            })
+            .sum()
+    }
+}
+
+struct DisplayMap<'a, T>(&'a T, Position);
+
+impl std::fmt::Display for DisplayMap<'_, DoubleMap> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for y in 0..self.0.height as u8 {
+            for x in 0..self.0.width as u8 {
+                let pos = Position { x, y };
+                if pos == self.1 {
+                    write!(f, "@")?;
+                } else {
+                    let tile = self.0.get_tile(pos).unwrap();
+                    let c = match tile {
+                        DoubleTile::Empty => '.',
+                        DoubleTile::Wall => '#',
+                        DoubleTile::BoxLeft => '[',
+                        DoubleTile::BoxRight => ']',
+                    };
+                    write!(f, "{}", c)?;
+                }
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -174,8 +364,7 @@ pub fn parse(input: &[u8]) -> Puzzle {
     let instructions = instructions_part
         .iter()
         .copied()
-        .map(Direction::try_from)
-        .flatten()
+        .flat_map(Direction::try_from)
         .collect();
     Puzzle { map, instructions }
 }
@@ -192,7 +381,18 @@ pub fn part1(input: &Puzzle) -> usize {
 
 #[aoc(day15, part2)]
 pub fn part2(input: &Puzzle) -> usize {
-    todo!()
+    let mut map = input.map.clone().into_double();
+    let mut pos = map.start;
+    for dir in &input.instructions {
+        if cfg!(feature = "extra-debug-prints") {
+            println!("{}\n\nMOVE: {dir:?}", DisplayMap(&map, pos));
+        }
+        pos = map.move_robot(pos, *dir);
+    }
+    if cfg!(feature = "extra-debug-prints") {
+        println!("{}", DisplayMap(&map, pos));
+    }
+    map.part2_checksum()
 }
 
 #[cfg(test)]
@@ -248,4 +448,5 @@ example_tests! {
     v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
     ",
     part1 => 10092,
+    part2 => 9021,
 }
