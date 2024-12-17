@@ -56,14 +56,15 @@ impl<'s, T: Unindentable + ?Sized + 's> ParserOrNone<'s, T> for Option<()> {
 }
 
 #[allow(private_bounds)]
-impl<'s, Parse, Solve, T, I, O> CorrectResultTest<'s, Parse, Solve, T, I, O>
+impl<'s, Parse, Solve, T, I, O, Solution> CorrectResultTest<'s, Parse, Solve, T, I, O>
 where
     Parse: ParserOrNone<'s, T>,
-    Solve: FnOnce(&I) -> O,
+    Solve: FnOnce(&I) -> Solution,
     Parse::Parsed: Borrow<I>,
     T: ?Sized,
     I: ?Sized,
-    O: std::cmp::Eq + std::fmt::Debug + 'static,
+    Solution: std::cmp::PartialEq<O> + std::fmt::Debug + 'static,
+    O: std::fmt::Debug + 'static,
 {
     #[cfg_attr(not(test), allow(unused))]
     pub fn test(self) {
