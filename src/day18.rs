@@ -9,6 +9,12 @@ pub struct Position {
     y: u8,
 }
 
+impl std::fmt::Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
+}
+
 impl FromStr for Position {
     type Err = ParseIntError;
 
@@ -58,7 +64,7 @@ impl Direction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Tile {
     Free,
-    Obstacle,
+    Obstacle(u32),
 }
 
 struct Grid {
@@ -91,17 +97,17 @@ impl Grid {
     }
 
     fn set_obstacles(&mut self, obstacles: impl IntoIterator<Item = Position>) {
-        for pos in obstacles {
-            self.set(pos, Tile::Obstacle);
+        for (i, pos) in obstacles.into_iter().enumerate() {
+            self.set(pos, Tile::Obstacle(i.try_into().unwrap()));
         }
     }
 
-    fn step(&self, pos: Position, direction: Direction) -> Option<Position> {
+    fn step(&self, pos: Position, direction: Direction, max_obstacle: u32) -> Option<Position> {
         let new_pos = pos.step(direction)?;
-        if self.get(new_pos) == Some(Tile::Free) {
-            Some(new_pos)
-        } else {
-            None
+        match self.get(new_pos) {
+            Some(Tile::Free) => Some(new_pos),
+            Some(Tile::Obstacle(i)) if i > max_obstacle => Some(new_pos),
+            _ => None,
         }
     }
 }
@@ -112,7 +118,7 @@ impl std::fmt::Display for Grid {
             for x in 0..self.width {
                 match self.get(Position { x, y }).unwrap() {
                     Tile::Free => write!(f, ".")?,
-                    Tile::Obstacle => write!(f, "#")?,
+                    Tile::Obstacle(_) => write!(f, "#")?,
                 }
             }
             writeln!(f)?;
@@ -147,7 +153,7 @@ fn parse(input: &str) -> Vec<Position> {
     input.lines().map(|l| l.parse().unwrap()).collect()
 }
 
-fn solve(grid: &Grid, start: Position, end: Position) -> Option<usize> {
+fn solve(grid: &Grid, start: Position, end: Position, max_obstacle: u32) -> Option<usize> {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     struct State {
         pos: Position,
@@ -188,7 +194,7 @@ fn solve(grid: &Grid, start: Position, end: Position) -> Option<usize> {
         }
 
         for direction in Direction::ALL {
-            if let Some(new_pos) = grid.step(state.pos, direction) {
+            if let Some(new_pos) = grid.step(state.pos, direction, max_obstacle) {
                 if visited.insert(new_pos) {
                     queue.push_back(state.move_one(new_pos));
                 }
@@ -204,7 +210,7 @@ fn part1_small(input: &[Position]) -> usize {
     let obstacles = &input[..12];
     let mut grid = Grid::new(7, 7);
     grid.set_obstacles(obstacles.iter().copied());
-    solve(&grid, Position { x: 0, y: 0 }, Position { x: 6, y: 6 }).unwrap()
+    solve(&grid, Position { x: 0, y: 0 }, Position { x: 6, y: 6 }, 12).unwrap()
 }
 
 #[aoc(day18, part1)]
@@ -212,31 +218,58 @@ pub fn part1(input: &[Position]) -> usize {
     let obstacles = &input[..1024];
     let mut grid = Grid::new(71, 71);
     grid.set_obstacles(obstacles.iter().copied());
-    solve(&grid, Position { x: 0, y: 0 }, Position { x: 70, y: 70 }).unwrap()
+    solve(
+        &grid,
+        Position { x: 0, y: 0 },
+        Position { x: 70, y: 70 },
+        1024,
+    )
+    .unwrap()
+}
+
+fn part2_solve(obstacles: &[Position], start: Position, end: Position, skip: usize) -> Position {
+    let width = start.x.max(end.x) + 1;
+    let height = start.y.max(end.y) + 1;
+
+    let mut grid = Grid::new(width, height);
+    grid.set_obstacles(obstacles.iter().copied());
+
+    let mut left = skip;
+    let mut right = obstacles.len() - 1;
+    while left < right {
+        let i = (left + right) / 2;
+        if solve(&grid, start, end, i as _).is_some() {
+            left = i + 1;
+        } else {
+            right = i - 1;
+        }
+    }
+    debug_assert!(left == right);
+    obstacles[left]
 }
 
 #[aoc(day18, part2)]
-pub fn part2(input: &[Position]) -> String {
-    let mut grid = Grid::new(71, 71);
+pub fn part2(input: &[Position]) -> Position {
     let start = Position { x: 0, y: 0 };
     let end = Position { x: 70, y: 70 };
-    grid.set_obstacles(input[..1024].iter().copied());
-    for &obstacle in input.iter().skip(1024) {
-        grid.set(obstacle, Tile::Obstacle);
-        if solve(&grid, start, end).is_none() {
-            return format!("{},{}", obstacle.x, obstacle.y);
-        }
-    }
-    panic!("Not found")
+    part2_solve(input, start, end, 1024)
+}
+
+#[cfg(test)]
+pub fn part2_small(input: &[Position]) -> Position {
+    let start = Position { x: 0, y: 0 };
+    let end = Position { x: 6, y: 6 };
+    part2_solve(input, start, end, 12)
 }
 
 example_tests! {
     "5,4\n4,2\n4,5\n3,0\n2,1\n6,3\n2,4\n1,5\n0,6\n3,3\n2,6\n5,1\n1,2\n5,5\n2,5\n6,5\n1,4\n0,4\n6,4\n1,1\n6,1\n1,0\n0,5\n1,6\n2,0",
     part1_small => 22,
+    part2_small => crate::day18::Position { x: 6, y: 1 },
 }
 
 known_input_tests! {
     input: include_str!("../input/2024/day18.txt"),
     part1 => 506,
-    part2 => "62,6",
+    part2 => crate::day18::Position { x: 62, y: 6},
 }
