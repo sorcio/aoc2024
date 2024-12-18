@@ -271,5 +271,5 @@ example_tests! {
 known_input_tests! {
     input: include_str!("../input/2024/day18.txt"),
     part1 => 506,
-    part2 => crate::day18::Position { x: 62, y: 6},
+    part2 => crate::day18::Position { x: 62, y: 6 },
 }
