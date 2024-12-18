@@ -1,5 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use aoc_utils::example_tests;
+use aoc_utils::{example_tests, known_input_tests};
 
 #[derive(Debug, Clone)]
 struct Machine {
@@ -147,6 +147,10 @@ impl ProgramOutput {
     fn push(&mut self, value: u8) {
         self.0.push(value);
     }
+
+    // fn as_number(&self) -> u64 {
+    //     self.0.iter().rev().fold(0, |acc, &x| acc * 8 + x as u64)
+    // }
 }
 
 impl std::fmt::Display for ProgramOutput {
@@ -164,8 +168,15 @@ impl std::fmt::Display for ProgramOutput {
     }
 }
 
+impl PartialEq<&str> for ProgramOutput {
+    fn eq(&self, other: &&str) -> bool {
+        let s = self.to_string();
+        s == *other
+    }
+}
+
 #[aoc(day17, part1)]
-fn part1(input: &Machine) -> String {
+fn part1(input: &Machine) -> ProgramOutput {
     let mut out = ProgramOutput::new();
     let mut machine = input.clone();
     while let Some((opcode, operand)) = machine.fetch() {
@@ -173,12 +184,194 @@ fn part1(input: &Machine) -> String {
             out.push(value);
         }
     }
-    out.to_string()
+    out
 }
 
 #[aoc(day17, part2)]
-fn part2(input: &Machine) -> String {
-    todo!()
+fn part2(input: &Machine) -> usize {
+    if input.program.len() > 6 {
+        return 0;
+    }
+    for i in (0..=u32::MAX).rev() {
+        let mut out = ProgramOutput::new();
+        let mut machine = input.clone();
+        machine.register_a = i as _;
+        while let Some((opcode, operand)) = machine.fetch() {
+            if let Some(value) = machine.execute(opcode, operand) {
+                out.push(value);
+            }
+        }
+        println!("{i}: {out}");
+        if out.0 == input.program {
+            return i as _;
+        }
+    }
+    panic!()
+}
+
+fn hardcoded_part2_machine(n: u64) -> u8 {
+    // bst 4 | B = A % 8
+    // bxl 3 | B = B ^ 3
+    // cdv 5 | C = A / 2^B
+    // adv 3 | A = A / 8
+    // bxl 4 | B = B ^ 4
+    // bxc 7 | B = B ^ C
+    // out 5 | output B
+    // jnz 0 | if a != 0 jump to 0
+
+    // let mut b;
+    // let c;
+    // b = n & 7;
+    // b ^= 3;
+    // c = n >> b;
+    // b ^= 4;
+    // b ^= c;
+    // (b & 7) as _
+    //
+    let x0 = n & 7;
+    // let x1 = (n >> 3) & 7;
+    // let x2 = (n >> 6) & 7;
+    // ((x0 ^ 7) ^ ((x2 * 64 + x1 * 8 + x0) >> (x0 ^ 3)) & 7) as _
+    ((x0 ^ 7) ^ (n >> (x0 ^ 3)) & 7) as _
+}
+
+#[aoc(day17, part2, p2harcoded)]
+fn part2_hardcoded(input: &Machine) -> usize {
+    let table = {
+        let mut table = [0; 1024];
+        for i in 0..1024 {
+            table[i] = hardcoded_part2_machine(i as _);
+            let foo = part1(&Machine {
+                register_a: i as _,
+                register_b: 0,
+                register_c: 0,
+                ip: 0,
+                program: input.program.clone(),
+            })
+            .0[0];
+            debug_assert_eq!(foo, table[i] as _);
+        }
+        table
+    };
+
+    let reverse = {
+        let mut reverse: [Vec<u16>; 8] = [(); 8].map(|()| Vec::with_capacity(96));
+        for i in 0..1024 {
+            reverse[table[i] as usize].push(i as _);
+        }
+        for v in &mut reverse {
+            v.sort_unstable();
+        }
+        reverse
+    };
+
+    // debug_assert_eq!(table[0o321], 2);
+    // debug_assert_eq!(table[0o654], 0);
+    // debug_assert_eq!(table[0o050], 2);
+    // debug_assert_eq!(table[0o305], 1);
+    debug_assert!(reverse[2].contains(&0o050));
+    debug_assert!(reverse[1].contains(&0o305));
+    debug_assert!(reverse[4].contains(&0o730));
+    debug_assert!(reverse[7].contains(&0o473));
+    debug_assert!(reverse[6].contains(&0o747));
+    debug_assert!(reverse[0].contains(&0o774));
+    debug_assert!(reverse[3].contains(&0o277));
+    debug_assert!(reverse[1].contains(&0o027));
+    debug_assert!(reverse[4].contains(&0o002));
+
+    debug_assert!(reverse[4].contains(&0o130));
+    debug_assert!(reverse[5].contains(&0o1454));
+
+    let expected = input.program.iter().copied().collect::<Vec<_>>();
+    // let expected = [2, 1, 4, 7, 6, 0, 3, 1, 4];
+    // expected.reverse();
+
+    let mut stack = vec![0];
+    let mut result = 0u64;
+
+    let mut solutions = vec![];
+    loop {
+        let idx = *stack.last().unwrap();
+        let depth = stack.len() - 1;
+
+        // println!("{stack:?} {result:o} [expected = {}]", expected[depth]);
+        if depth == 0 {
+            if let Some((next_match, &digits)) = reverse[expected[depth] as usize]
+                .iter()
+                .enumerate()
+                .skip(idx)
+                // .filter(|&(_, &digits)| digits >= 64)
+                // .inspect(|(i, digits)| println!("{i:2} {digits:03o}"))
+                .next()
+            {
+                // println!("{digits:0o}");
+                *stack.last_mut().unwrap() = next_match as _;
+                result = digits as u64;
+                stack.push(0);
+            } else {
+                break;
+                // panic!("No solution found");
+            }
+        } else {
+            if let Some((next_match, &digits)) = reverse[expected[depth] as usize]
+                .iter()
+                .enumerate()
+                .skip(idx)
+                // .inspect(|(i, digits)| println!("{i:2} {digits:03o}"))
+                .find(|(_, digits)| **digits & 0o77 == (result >> (depth * 3)) as u16 & 0o77)
+            // .find(|(_, digits)| **digits >> 3 == result as u16 & 0o77)
+            {
+                // println!("{digits:03o}");
+                *stack.last_mut().unwrap() = next_match as _;
+                result += (digits as u64 & 0o700) << (depth * 3);
+                // result = result * 8 + (digits as u64 & 7);
+                if depth == expected.len() - 1 {
+                    println!("===> {result:o}");
+                    solutions.push(result);
+                    stack.pop();
+                    *stack.last_mut().unwrap() += 1;
+                    // result >>= 3;
+                    result &= (1 << ((depth + 1) * 3)) - 1;
+                } else {
+                    stack.push(0);
+                }
+            } else {
+                // result >>= 3;
+                // let before = result;
+                result &= (1 << ((depth + 1) * 3)) - 1;
+                // println!("< pop! {before:o} => {result:o}\n");
+                stack.pop();
+                if stack.is_empty() {
+                    // panic!("No solution found");
+                    break;
+                }
+                *stack.last_mut().unwrap() += 1;
+            }
+        }
+    }
+
+    solutions.sort();
+    for &solution in &solutions {
+        println!("Solution: 0o{solution:o} {solution}");
+
+        {
+            // check result
+            let machine = Machine {
+                register_a: solution,
+                register_b: 0,
+                register_c: 0,
+                ip: 0,
+                program: input.program.clone(),
+            };
+            let out = part1(&machine);
+            let expected = ProgramOutput(expected.iter().copied().collect());
+            let mark = if out.0 == expected.0 { "✅" } else { "❌" };
+            println!("     out = {out}");
+            println!("expected = {expected} {mark}");
+        }
+    }
+
+    solutions.iter().min().copied().unwrap() as _
 }
 
 example_tests! {
@@ -191,4 +384,25 @@ example_tests! {
     ",
 
     part1 => "4,6,3,5,6,3,5,2,1,0",
+}
+
+mod p2example {
+    use super::*;
+    example_tests! {
+        "
+        Register A: 2024
+        Register B: 0
+        Register C: 0
+
+        Program: 0,3,5,4,3,0
+        ",
+
+        part2 => 117440,
+    }
+}
+
+known_input_tests! {
+    input: include_str!("../input/2024/day17.txt"),
+    part1 => "2,1,4,7,6,0,3,1,4",
+    part2_hardcoded => 266932601404433,
 }
