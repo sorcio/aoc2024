@@ -121,6 +121,27 @@ impl std::fmt::Display for Grid {
     }
 }
 
+struct VisitedGrid {
+    data: Vec<bool>,
+    width: u8,
+}
+
+impl VisitedGrid {
+    fn from_grid(grid: &Grid) -> Self {
+        Self {
+            data: vec![false; grid.width as usize * grid.height as usize],
+            width: grid.width,
+        }
+    }
+
+    fn insert(&mut self, pos: Position) -> bool {
+        let idx = pos.y as usize * self.width as usize + pos.x as usize;
+        let visited = self.data[idx];
+        self.data[idx] = true;
+        !visited
+    }
+}
+
 #[aoc_generator(day18)]
 fn parse(input: &str) -> Vec<Position> {
     input.lines().map(|l| l.parse().unwrap()).collect()
@@ -131,7 +152,6 @@ fn solve(grid: &Grid, start: Position, end: Position) -> Option<usize> {
     struct State {
         pos: Position,
         steps: usize,
-        heuristic: usize,
     }
 
     impl PartialOrd for State {
@@ -141,48 +161,36 @@ fn solve(grid: &Grid, start: Position, end: Position) -> Option<usize> {
     }
     impl Ord for State {
         fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-            (self.steps + self.heuristic).cmp(&(other.steps + other.heuristic))
+            self.steps.cmp(&other.steps)
         }
     }
 
     impl State {
-        fn initial(pos: Position, dest: Position) -> Self {
-            Self {
-                pos,
-                steps: 0,
-                heuristic: Self::heuristic(pos, dest),
-            }
+        fn initial(pos: Position) -> Self {
+            Self { pos, steps: 0 }
         }
 
-        fn move_one(&self, new_pos: Position, dest: Position) -> Self {
+        fn move_one(&self, new_pos: Position) -> Self {
             Self {
                 pos: new_pos,
                 steps: self.steps + 1,
-                heuristic: Self::heuristic(new_pos, dest),
             }
-        }
-
-        fn heuristic(a: Position, b: Position) -> usize {
-            a.x.abs_diff(b.x) as usize + a.y.abs_diff(b.y) as usize
         }
     }
 
-    let mut queue: VecDeque<_> = [State::initial(start, end)].into();
-    let mut visited = std::collections::HashSet::new();
+    let mut queue: VecDeque<_> = [State::initial(start)].into();
+    // let mut visited = std::collections::HashSet::new();
+    let mut visited = VisitedGrid::from_grid(grid);
 
     while let Some(state) = queue.pop_front() {
         if state.pos == end {
             return Some(state.steps);
         }
 
-        if !visited.insert(state.pos) {
-            continue;
-        }
-
         for direction in Direction::ALL {
             if let Some(new_pos) = grid.step(state.pos, direction) {
-                if !visited.contains(&new_pos) {
-                    queue.push_back(state.move_one(new_pos, end));
+                if visited.insert(new_pos) {
+                    queue.push_back(state.move_one(new_pos));
                 }
             }
         }
@@ -212,7 +220,8 @@ pub fn part2(input: &[Position]) -> String {
     let mut grid = Grid::new(71, 71);
     let start = Position { x: 0, y: 0 };
     let end = Position { x: 70, y: 70 };
-    for &obstacle in input {
+    grid.set_obstacles(input[..1024].iter().copied());
+    for &obstacle in input.iter().skip(1024) {
         grid.set(obstacle, Tile::Obstacle);
         if solve(&grid, start, end).is_none() {
             return format!("{},{}", obstacle.x, obstacle.y);
