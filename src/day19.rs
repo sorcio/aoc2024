@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, ops::ControlFlow};
+use std::{cmp::Reverse, collections::HashMap, ops::ControlFlow};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use aoc_utils::{example_tests, known_input_tests};
@@ -114,8 +114,8 @@ fn part1(input: &Input) -> usize {
                     return true;
                 }
                 for atom in &atoms {
-                    if s.starts_with(atom) {
-                        stack.push(&s[atom.len()..]);
+                    if let Some(suffix) = s.strip_prefix(atom) {
+                        stack.push(suffix);
                     }
                 }
             }
@@ -139,14 +139,17 @@ fn part1_prefix_tree(input: &Input) -> usize {
         .filter(|design| {
             let mut stack = vec![&design[..]];
             while let Some(s) = stack.pop() {
-                if let Some(_) = tree.find(s, |len| {
-                    if len == s.len() {
-                        ControlFlow::Break(())
-                    } else {
-                        stack.push(&s[len..]);
-                        ControlFlow::Continue(())
-                    }
-                }) {
+                if tree
+                    .find(s, |len| {
+                        if len == s.len() {
+                            ControlFlow::Break(())
+                        } else {
+                            stack.push(&s[len..]);
+                            ControlFlow::Continue(())
+                        }
+                    })
+                    .is_some()
+                {
                     return true;
                 }
             }
@@ -155,9 +158,48 @@ fn part1_prefix_tree(input: &Input) -> usize {
         .count()
 }
 
+fn count_strings<'a>(s: &'a str, cache: &mut HashMap<&'a str, usize>, tree: &PrefixTree) -> usize {
+    let mut accumulator = 0;
+    tree.find(s, |len| {
+        let suffix = &s[len..];
+        if suffix.is_empty() {
+            accumulator += 1;
+            return ControlFlow::Continue(());
+        }
+        let count = if let Some(count) = cache.get(suffix) {
+            *count
+        } else {
+            let count = count_strings(suffix, cache, tree);
+            cache.insert(suffix, count);
+            count
+        };
+        accumulator += count;
+        ControlFlow::Continue(())
+    })
+    .unwrap_or(accumulator)
+}
+
 #[aoc(day19, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> usize {
+    let tree = {
+        let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+        for atom in &input.atoms {
+            tree.insert(atom);
+        }
+        tree
+    };
+
+    let mut cache = HashMap::new();
+
+    input
+        .designs
+        .iter()
+        .map(move |design| {
+            #[cfg(debug_assertions)]
+            println!("{design}");
+            count_strings(design, &mut cache, &tree)
+        })
+        .sum()
 }
 
 #[cfg(test)]
@@ -249,6 +291,25 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn count_test() {
+        let atoms = ["r", "wr", "b", "g", "bwu", "rb", "gb", "br"];
+        let tree = {
+            let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+            for atom in atoms {
+                tree.insert(atom);
+            }
+            tree
+        };
+        let mut cache = HashMap::new();
+        assert_eq!(count_strings("u", &mut cache, &tree), 0);
+        assert_eq!(count_strings("r", &mut cache, &tree), 1);
+        assert_eq!(count_strings("wrr", &mut cache, &tree), 1);
+        assert_eq!(count_strings("brwrr", &mut cache, &tree), 2);
+        assert_eq!(count_strings("ubwu", &mut cache, &tree), 0);
+        assert_eq!(count_strings("rrbgbr", &mut cache, &tree), 6);
+    }
 }
 
 example_tests! {
@@ -267,10 +328,12 @@ example_tests! {
 
     part1 => 6,
     part1_prefix_tree => 6,
+    part2 => 16,
 }
 
 known_input_tests! {
     input: include_str!("../input/2024/day19.txt"),
     part1 => 265,
     part1_prefix_tree => 265,
+    part2 => 752461716635602,
 }
