@@ -4,8 +4,8 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use aoc_utils::{example_tests, known_input_tests};
 
 struct Input {
-    atoms: Vec<String>,
-    designs: Vec<String>,
+    atoms: Vec<Box<[u8]>>,
+    designs: Vec<Box<[u8]>>,
 }
 
 #[aoc_generator(day19)]
@@ -15,15 +15,17 @@ fn parse(input: &str) -> Input {
         .next()
         .unwrap()
         .split(", ")
-        .map(|s| s.to_string())
+        .map(|s| s.bytes().collect())
         .collect();
     let _ = lines.next();
-    let designs = lines.map(|s| s.to_string()).collect();
+    let designs = lines.map(|s| s.bytes().collect()).collect();
     Input { atoms, designs }
 }
 
+const ALPHABET: [u8; 5] = [b'w', b'u', b'b', b'g', b'r'];
+
 struct PrefixTree {
-    alphabet: Vec<char>,
+    alphabet: [u8; 5],
     nodes: Vec<PrefixTreeNode>,
     max_depth: usize,
 }
@@ -34,7 +36,7 @@ struct PrefixTreeNode {
 }
 
 impl PrefixTree {
-    fn new(alphabet: Vec<char>) -> Self {
+    fn new(alphabet: [u8; 5]) -> Self {
         let nodes = vec![PrefixTreeNode {
             children: [None; 5],
             is_leaf: false,
@@ -46,9 +48,9 @@ impl PrefixTree {
         }
     }
 
-    fn insert(&mut self, s: &str) {
+    fn insert(&mut self, s: &[u8]) {
         let mut node = 0;
-        for c in s.chars() {
+        for &c in s {
             let i = self.alphabet.iter().position(|&x| x == c).unwrap();
             if let Some(next) = self.nodes[node].children[i] {
                 node = next;
@@ -66,9 +68,9 @@ impl PrefixTree {
         self.max_depth = self.max_depth.max(s.len());
     }
 
-    fn contains(&self, s: &str) -> bool {
+    fn contains(&self, s: &[u8]) -> bool {
         let mut node = 0;
-        for c in s.chars() {
+        for &c in s {
             let i = self.alphabet.iter().position(|&x| x == c).unwrap();
             if let Some(next) = self.nodes[node].children[i] {
                 node = next;
@@ -79,9 +81,9 @@ impl PrefixTree {
         self.nodes[node].is_leaf
     }
 
-    fn find<T>(&self, key: &str, mut func: impl FnMut(usize) -> ControlFlow<T>) -> Option<T> {
+    fn find<T>(&self, key: &[u8], mut func: impl FnMut(usize) -> ControlFlow<T>) -> Option<T> {
         let mut node = &self.nodes[0];
-        for (depth, c) in key.chars().enumerate() {
+        for (depth, &c) in key.iter().enumerate() {
             let i = self.alphabet.iter().position(|&x| x == c).unwrap();
             if let Some(next) = node.children[i] {
                 node = &self.nodes[next];
@@ -102,7 +104,7 @@ impl PrefixTree {
 
 #[aoc(day19, part1)]
 fn part1(input: &Input) -> usize {
-    let mut atoms = input.atoms.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+    let mut atoms = input.atoms.iter().map(|x| &x[..]).collect::<Vec<_>>();
     atoms.sort_unstable_by_key(|x| Reverse(x.len()));
     input
         .designs
@@ -113,7 +115,7 @@ fn part1(input: &Input) -> usize {
                 if s.is_empty() {
                     return true;
                 }
-                for atom in &atoms {
+                for &atom in &atoms {
                     if let Some(suffix) = s.strip_prefix(atom) {
                         stack.push(suffix);
                     }
@@ -127,7 +129,7 @@ fn part1(input: &Input) -> usize {
 #[aoc(day19, part1, part1_prefix_tree)]
 fn part1_prefix_tree(input: &Input) -> usize {
     let tree = {
-        let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+        let mut tree = PrefixTree::new(ALPHABET);
         for atom in &input.atoms {
             tree.insert(atom);
         }
@@ -158,7 +160,11 @@ fn part1_prefix_tree(input: &Input) -> usize {
         .count()
 }
 
-fn count_strings<'a>(s: &'a str, cache: &mut HashMap<&'a str, usize>, tree: &PrefixTree) -> usize {
+fn count_strings<'a>(
+    s: &'a [u8],
+    cache: &mut HashMap<&'a [u8], usize>,
+    tree: &PrefixTree,
+) -> usize {
     let mut accumulator = 0;
     tree.find(s, |len| {
         let suffix = &s[len..];
@@ -182,7 +188,7 @@ fn count_strings<'a>(s: &'a str, cache: &mut HashMap<&'a str, usize>, tree: &Pre
 #[aoc(day19, part2)]
 fn part2(input: &Input) -> usize {
     let tree = {
-        let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+        let mut tree = PrefixTree::new(ALPHABET);
         for atom in &input.atoms {
             tree.insert(atom);
         }
@@ -195,8 +201,8 @@ fn part2(input: &Input) -> usize {
         .designs
         .iter()
         .map(move |design| {
-            #[cfg(debug_assertions)]
-            println!("{design}");
+            // #[cfg(debug_assertions)]
+            // println!("{design}");
             count_strings(design, &mut cache, &tree)
         })
         .sum()
@@ -205,7 +211,7 @@ fn part2(input: &Input) -> usize {
 #[aoc(day19, part2, part2ciro)]
 fn part2_ciro(input: &Input) -> usize {
     let tree = {
-        let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+        let mut tree = PrefixTree::new(ALPHABET);
         for atom in &input.atoms {
             tree.insert(atom);
         }
@@ -236,47 +242,47 @@ mod tests {
 
     #[test]
     fn prefix_tree() {
-        let mut tree = PrefixTree::new(vec!['a', 'b', 'c']);
-        tree.insert("ab");
-        tree.insert("abc");
-        tree.insert("aaab");
-        tree.insert("b");
-        tree.insert("cacca");
-        assert!(tree.contains("ab"));
-        assert!(tree.contains("abc"));
-        assert!(tree.contains("aaab"));
-        assert!(tree.contains("b"));
-        assert!(tree.contains("cacca"));
+        let mut tree = PrefixTree::new([b'a', b'b', b'c', b'd', b'e']);
+        tree.insert(b"ab");
+        tree.insert(b"abc");
+        tree.insert(b"aaab");
+        tree.insert(b"b");
+        tree.insert(b"cacca");
+        assert!(tree.contains(b"ab"));
+        assert!(tree.contains(b"abc"));
+        assert!(tree.contains(b"aaab"));
+        assert!(tree.contains(b"b"));
+        assert!(tree.contains(b"cacca"));
 
-        assert!(!tree.contains(""));
-        assert!(!tree.contains("a"));
-        assert!(!tree.contains("ac"));
-        assert!(!tree.contains("abca"));
-        assert!(!tree.contains("c"));
+        assert!(!tree.contains(b""));
+        assert!(!tree.contains(b"a"));
+        assert!(!tree.contains(b"ac"));
+        assert!(!tree.contains(b"abca"));
+        assert!(!tree.contains(b"c"));
     }
 
     #[test]
     fn prefix_tree_find() {
-        let mut tree = PrefixTree::new(vec!['a', 'b', 'c']);
-        tree.insert("aaaaaaaaa");
+        let mut tree = PrefixTree::new([b'a', b'b', b'c', b'd', b'e']);
+        tree.insert(b"aaaaaaaaa");
 
         let mut counter = 0;
-        tree.find::<()>("aaaaaaaaa", |_| {
+        tree.find::<()>(b"aaaaaaaaa", |_| {
             counter += 1;
             ControlFlow::Continue(())
         });
         assert_eq!(counter, 1);
 
-        tree.insert("a");
-        tree.insert("aa");
-        tree.insert("aaa");
-        tree.insert("aaaa");
-        tree.insert("aaaaa");
-        tree.insert("aaaaaa");
-        tree.insert("aaaaaaa");
-        tree.insert("aaaaaaaa");
+        tree.insert(b"a");
+        tree.insert(b"aa");
+        tree.insert(b"aaa");
+        tree.insert(b"aaaa");
+        tree.insert(b"aaaaa");
+        tree.insert(b"aaaaaa");
+        tree.insert(b"aaaaaaa");
+        tree.insert(b"aaaaaaaa");
         let mut counter = 0;
-        tree.find::<()>("aaaaaaaaa", |_| {
+        tree.find::<()>(b"aaaaaaaaa", |_| {
             counter += 1;
             ControlFlow::Continue(())
         });
@@ -286,32 +292,32 @@ mod tests {
     #[test]
     fn bad_cases() {
         // at one point, the trie-based solution marked these as a valid designs, but they are not:
-        let designs = [
-            "wrgwrbbrrwuwgrubrbrgrurwggrubwgbwgwruwwbugurwrubwgbwgbgrwrb",
-            "wrrwrbbrrwrwugwggggwuwbrbrwuwbruurgwwuuwrb",
+        let designs: [&[u8]; 2] = [
+            b"wrgwrbbrrwuwgrubrbrgrurwggrubwgbwgwruwwbugurwrubwgbwgbgrwrb",
+            b"wrrwrbbrrwrwugwggggwuwbrbrwuwbruurgwwuuwrb",
         ];
         let input = parse(include_str!("../input/2024/day19.txt"));
         let tree = {
-            let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+            let mut tree = PrefixTree::new(ALPHABET);
             for atom in &input.atoms {
                 tree.insert(atom);
             }
             tree
         };
-        assert!(!tree.contains("wrgw"));
+        assert!(!tree.contains(b"wrgw"));
         for design in designs {
-            println!("{design}");
+            println!("{design:?}");
             let mut stack = vec![&design[..]];
             while let Some(s) = stack.pop() {
                 if s.is_empty() {
-                    assert!(false, "design should not be valid: {}", design);
+                    assert!(false, "design should not be valid: {:?}", design);
                 }
                 tree.find::<()>(s, |len| {
                     let (a, b) = s.split_at(len);
-                    println!("{a} {b}");
+                    println!("{a:?} {b:?}");
                     assert!(
-                        input.atoms.iter().any(|atom| a == atom),
-                        "{a} should not match"
+                        input.atoms.iter().any(|atom| a == atom.as_ref()),
+                        "{a:?} should not match"
                     );
                     stack.push(&s[len..]);
                     ControlFlow::Continue(())
@@ -322,21 +328,21 @@ mod tests {
 
     #[test]
     fn count_test() {
-        let atoms = ["r", "wr", "b", "g", "bwu", "rb", "gb", "br"];
+        let atoms: [&[u8]; 8] = [b"r", b"wr", b"b", b"g", b"bwu", b"rb", b"gb", b"br"];
         let tree = {
-            let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+            let mut tree = PrefixTree::new(ALPHABET);
             for atom in atoms {
                 tree.insert(atom);
             }
             tree
         };
         let mut cache = HashMap::new();
-        assert_eq!(count_strings("u", &mut cache, &tree), 0);
-        assert_eq!(count_strings("r", &mut cache, &tree), 1);
-        assert_eq!(count_strings("wrr", &mut cache, &tree), 1);
-        assert_eq!(count_strings("brwrr", &mut cache, &tree), 2);
-        assert_eq!(count_strings("ubwu", &mut cache, &tree), 0);
-        assert_eq!(count_strings("rrbgbr", &mut cache, &tree), 6);
+        assert_eq!(count_strings(b"u", &mut cache, &tree), 0);
+        assert_eq!(count_strings(b"r", &mut cache, &tree), 1);
+        assert_eq!(count_strings(b"wrr", &mut cache, &tree), 1);
+        assert_eq!(count_strings(b"brwrr", &mut cache, &tree), 2);
+        assert_eq!(count_strings(b"ubwu", &mut cache, &tree), 0);
+        assert_eq!(count_strings(b"rrbgbr", &mut cache, &tree), 6);
     }
 }
 
