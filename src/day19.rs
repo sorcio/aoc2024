@@ -22,27 +22,23 @@ fn parse(input: &str) -> Input {
     Input { atoms, designs }
 }
 
-const ALPHABET: [u8; 5] = [b'w', b'u', b'b', b'g', b'r'];
-
 struct PrefixTree {
-    alphabet: [u8; 5],
     nodes: Vec<PrefixTreeNode>,
     max_depth: usize,
 }
 
 struct PrefixTreeNode {
-    children: [Option<usize>; 5],
+    children: [Option<usize>; 26],
     is_leaf: bool,
 }
 
 impl PrefixTree {
-    fn new(alphabet: [u8; 5]) -> Self {
+    fn new() -> Self {
         let nodes = vec![PrefixTreeNode {
-            children: [None; 5],
+            children: [None; 26],
             is_leaf: false,
         }];
         Self {
-            alphabet,
             nodes,
             max_depth: 0,
         }
@@ -51,14 +47,14 @@ impl PrefixTree {
     fn insert(&mut self, s: &[u8]) {
         let mut node = 0;
         for &c in s {
-            let i = self.alphabet.iter().position(|&x| x == c).unwrap();
+            let i = (c - b'a') as usize;
             if let Some(next) = self.nodes[node].children[i] {
                 node = next;
             } else {
                 let next = self.nodes.len();
                 self.nodes[node].children[i] = Some(next);
                 self.nodes.push(PrefixTreeNode {
-                    children: [None; 5],
+                    children: [None; 26],
                     is_leaf: false,
                 });
                 node = next;
@@ -71,7 +67,7 @@ impl PrefixTree {
     fn contains(&self, s: &[u8]) -> bool {
         let mut node = 0;
         for &c in s {
-            let i = self.alphabet.iter().position(|&x| x == c).unwrap();
+            let i = (c - b'a') as usize;
             if let Some(next) = self.nodes[node].children[i] {
                 node = next;
             } else {
@@ -84,7 +80,7 @@ impl PrefixTree {
     fn find<T>(&self, key: &[u8], mut func: impl FnMut(usize) -> ControlFlow<T>) -> Option<T> {
         let mut node = &self.nodes[0];
         for (depth, &c) in key.iter().enumerate() {
-            let i = self.alphabet.iter().position(|&x| x == c).unwrap();
+            let i = (c - b'a') as usize;
             if let Some(next) = node.children[i] {
                 node = &self.nodes[next];
                 if node.is_leaf {
@@ -129,7 +125,7 @@ fn part1(input: &Input) -> usize {
 #[aoc(day19, part1, part1_prefix_tree)]
 fn part1_prefix_tree(input: &Input) -> usize {
     let tree = {
-        let mut tree = PrefixTree::new(ALPHABET);
+        let mut tree = PrefixTree::new();
         for atom in &input.atoms {
             tree.insert(atom);
         }
@@ -188,7 +184,7 @@ fn count_strings<'a>(
 #[aoc(day19, part2)]
 fn part2(input: &Input) -> usize {
     let tree = {
-        let mut tree = PrefixTree::new(ALPHABET);
+        let mut tree = PrefixTree::new();
         for atom in &input.atoms {
             tree.insert(atom);
         }
@@ -211,7 +207,7 @@ fn part2(input: &Input) -> usize {
 #[aoc(day19, part2, part2ciro)]
 fn part2_ciro(input: &Input) -> usize {
     let tree = {
-        let mut tree = PrefixTree::new(ALPHABET);
+        let mut tree = PrefixTree::new();
         for atom in &input.atoms {
             tree.insert(atom);
         }
@@ -242,7 +238,7 @@ mod tests {
 
     #[test]
     fn prefix_tree() {
-        let mut tree = PrefixTree::new([b'a', b'b', b'c', b'd', b'e']);
+        let mut tree = PrefixTree::new();
         tree.insert(b"ab");
         tree.insert(b"abc");
         tree.insert(b"aaab");
@@ -263,7 +259,7 @@ mod tests {
 
     #[test]
     fn prefix_tree_find() {
-        let mut tree = PrefixTree::new([b'a', b'b', b'c', b'd', b'e']);
+        let mut tree = PrefixTree::new();
         tree.insert(b"aaaaaaaaa");
 
         let mut counter = 0;
@@ -298,7 +294,7 @@ mod tests {
         ];
         let input = parse(include_str!("../input/2024/day19.txt"));
         let tree = {
-            let mut tree = PrefixTree::new(ALPHABET);
+            let mut tree = PrefixTree::new();
             for atom in &input.atoms {
                 tree.insert(atom);
             }
@@ -330,7 +326,7 @@ mod tests {
     fn count_test() {
         let atoms: [&[u8]; 8] = [b"r", b"wr", b"b", b"g", b"bwu", b"rb", b"gb", b"br"];
         let tree = {
-            let mut tree = PrefixTree::new(ALPHABET);
+            let mut tree = PrefixTree::new();
             for atom in atoms {
                 tree.insert(atom);
             }
