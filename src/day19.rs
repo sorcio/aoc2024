@@ -202,6 +202,34 @@ fn part2(input: &Input) -> usize {
         .sum()
 }
 
+#[aoc(day19, part2, part2ciro)]
+fn part2_ciro(input: &Input) -> usize {
+    let tree = {
+        let mut tree = PrefixTree::new(['w', 'u', 'b', 'r', 'g'].into());
+        for atom in &input.atoms {
+            tree.insert(atom);
+        }
+        tree
+    };
+
+    input
+        .designs
+        .iter()
+        .map(move |design| {
+            let mut possibilities = vec![0; design.len() + 1];
+            possibilities[0] = 1;
+            for start in 0..design.len() {
+                let s = &design[start..];
+                tree.find::<()>(s, |len| {
+                    possibilities[start + len] += possibilities[start];
+                    ControlFlow::Continue(())
+                });
+            }
+            possibilities[design.len()]
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -329,6 +357,7 @@ example_tests! {
     part1 => 6,
     part1_prefix_tree => 6,
     part2 => 16,
+    part2_ciro => 16,
 }
 
 known_input_tests! {
@@ -336,4 +365,5 @@ known_input_tests! {
     part1 => 265,
     part1_prefix_tree => 265,
     part2 => 752461716635602,
+    part2_ciro => 752461716635602,
 }
