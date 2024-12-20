@@ -1,5 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use aoc_utils::{AsciiUtils, FromGridLike, grid_cell_enum};
+use aoc_utils::{AsciiUtils, FromGridLike, grid_cell_enum, known_input_tests};
 
 grid_cell_enum! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,8 +69,8 @@ impl Position {
         }
     }
 
-    fn manhattan_distance(self, other: Self) -> u8 {
-        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    fn manhattan_distance(self, other: Self) -> usize {
+        self.x.abs_diff(other.x) as usize + self.y.abs_diff(other.y) as usize
     }
 }
 
@@ -171,23 +171,31 @@ fn parse(input: &[u8]) -> Maze {
     input.grid_like().unwrap().into_grid()
 }
 
-fn part1_solve(maze: &Maze, desired_saving: usize) -> usize {
+fn count_possible_cheats(maze: &Maze, desired_saving: usize, max_cheat: usize) -> usize {
     let steps = solve_without_cheats(maze);
-
-    // TODO: this is quadratic, could be made faster by using a grid
     steps
         .iter()
         .enumerate()
+        .skip(desired_saving)
         .rev()
-        .map(|(i, pos)| {
+        .map(|(i, &pos)| {
             steps[..i]
                 .iter()
+                .enumerate()
                 .rev()
                 .skip(desired_saving)
-                .filter(|other_pos| pos.manhattan_distance(**other_pos) == 2)
+                .filter(|(j, other_pos)| {
+                    let distance = pos.manhattan_distance(**other_pos);
+                    let saving = i - j - distance;
+                    distance <= max_cheat && saving >= desired_saving
+                })
                 .count()
         })
         .sum()
+}
+
+fn part1_solve(maze: &Maze, desired_saving: usize) -> usize {
+    count_possible_cheats(maze, desired_saving, 2)
 }
 
 #[aoc(day20, part1)]
@@ -196,14 +204,13 @@ fn part1(input: &Maze) -> usize {
 }
 
 #[aoc(day20, part2)]
-fn part2(input: &Maze) -> String {
-    todo!()
+fn part2(input: &Maze) -> usize {
+    let maze = input;
+    count_possible_cheats(maze, 100, 20)
 }
 
 #[cfg(test)]
 mod tests {
-    use aoc_utils::unindent_bytes;
-
     use super::*;
 
     const EXAMPLE: &[u8] = b"\
@@ -260,8 +267,17 @@ mod tests {
         assert_eq!(part1_solve(&maze, 2), 44);
     }
 
-    // #[test]
-    // fn part2_example() {
-    //     assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
-    // }
+    #[test]
+    fn part2_example() {
+        let maze = parse(EXAMPLE);
+        assert_eq!(count_possible_cheats(&maze, 76, 20), 3);
+        assert_eq!(count_possible_cheats(&maze, 74, 20), 7);
+        assert_eq!(count_possible_cheats(&maze, 72, 20), 29);
+    }
+}
+
+known_input_tests! {
+    input: include_bytes!("../input/2024/day20.txt"),
+    part1 => 1441,
+    part2 => 1021490,
 }
